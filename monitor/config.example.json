@@ -1,0 +1,37 @@
+{
+  "title": "系统检测",
+  "notice": "鹈鹕测试不代表模型的全部能力，单次测试表现波动也不等于日常工作能力明显下降。请结合实际任务判断，无需因一次测试结果过度担心。",
+  "baseUrl": "http://127.0.0.1:30300/v1",
+  "outputDir": "/usr/share/nginx/html/model-intelligence-test-data",
+  "intervalMinutes": 15,
+  "historySize": 6,
+  "timeoutSeconds": 1200,
+  "concurrency": 3,
+  "prompt": "用 SVG 画一只鹈鹕骑自行车的 2D 循环动画",
+  "groups": [
+    {
+      "id": "1",
+      "name": "GPT福利",
+      "apiKey": "sk-replace-me",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "enabled": true
+    },
+    {
+      "id": "2",
+      "name": "福利_Grok",
+      "apiKey": "sk-replace-me",
+      "model": "grok-4.7",
+      "effort": "default",
+      "enabled": true
+    },
+    {
+      "id": "3",
+      "name": "实惠_GPT",
+      "apiKey": "sk-replace-me",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "enabled": false
+    }
+  ]
+}
