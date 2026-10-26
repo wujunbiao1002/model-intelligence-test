@@ -53,7 +53,7 @@ model-intelligence-test/
 | `npm run monitor:local` | 跑一轮检测，结果写到 `public/data/` 供本地预览 |
 | `npm test` | 定时脚本单元测试 |
 | `npm run typecheck` / `npm run lint` | 类型检查 / ESLint |
-| `npm run release` | 测试 + 检查 + 构建 + 打包，输出 `release/*.zip` |
+| `npm run release` | 测试 + 检查 + 构建 + 打包，输出 web 和 monitor 两个 zip |
 | `npm run package` | 只打包（已经构建过） |
 
 ## 部署
@@ -63,7 +63,12 @@ npm install
 npm run release
 ```
 
-把 `release/` 下的 zip 上传到服务器解压，然后按 [DEPLOY.md](./DEPLOY.md) 部署前端、定时脚本和 nginx。`config.json` 的字段说明也在 DEPLOY.md 第 6 节。
+`release/` 下会生成两个 zip，可以分别更新：
+
+- `model-intelligence-test-web-*.zip`：前端，解压到 `/data/docker-server/nginx/html/model-intelligence-test/`（保留其中的 `data/`）
+- `model-intelligence-test-monitor-*.zip`：检测脚本，解压到 `/data/docker-server/model-intelligence-test/`（不含 `config.json`）
+
+检测脚本用 `node:22-alpine` 容器由 cron 运行。完整步骤和 `config.json` 字段说明见 [DEPLOY.md](./DEPLOY.md)。
 
 ## 安全说明
 

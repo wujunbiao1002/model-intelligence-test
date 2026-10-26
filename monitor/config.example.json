@@ -1,8 +1,8 @@
 {
   "title": "系统检测",
   "notice": "鹈鹕测试不代表模型的全部能力，单次测试表现波动也不等于日常工作能力明显下降。请结合实际任务判断，无需因一次测试结果过度担心。",
-  "baseUrl": "http://127.0.0.1:30300/v1",
-  "outputDir": "/usr/share/nginx/html/model-intelligence-test-data",
+  "baseUrl": "https://tokenhub.junly.top/v1",
+  "outputDir": "/data",
   "intervalMinutes": 15,
   "historySize": 6,
   "timeoutSeconds": 1200,
