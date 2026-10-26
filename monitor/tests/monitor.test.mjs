@@ -68,11 +68,12 @@ test('monitor marks a reply without artwork as failed and skips disabled groups'
       { id: 'g2', name: 'B', apiKey: 'sk-b', model: 'm2', enabled: false },
     ]);
     try {
-      await run(process.execPath, [monitor, '--config', env.config]);
+      const { stdout } = await run(process.execPath, [monitor, '--config', env.config]);
       const status = JSON.parse(await readFile(path.join(env.out, 'status.json'), 'utf8'));
       assert.equal(status.groups.length, 1);
       assert.equal(status.groups[0].runs[0].status, 'failed');
-      assert.match(status.groups[0].runs[0].error, /没有找到/);
+      assert.equal(status.groups[0].runs[0].error, undefined);
+      assert.match(stdout, /^\[\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\] \[monitor\] g1 第 1 轮 失败：回复中没有找到/m);
       assert.equal(requests.length, 1);
       assert.equal(requests[0].body.reasoning_effort, undefined);
     } finally { await rm(env.dir, { recursive: true, force: true }); }

@@ -82,8 +82,10 @@ docker run --rm \
 每个分组完成后输出一行：
 
 ```
-[monitor] 1 第 8 轮 完成（192s）
-[monitor] 2 第 8 轮 失败：HTTP 504：Gateway time-out（62s）
+[2026-10-26 15:00:01] [monitor] 开始检测 2 个分组（并发 3）
+[2026-10-26 15:01:03] [monitor] 2 第 8 轮 失败：HTTP 504：Gateway time-out（62s）
+[2026-10-26 15:03:13] [monitor] 1 第 8 轮 完成（192s）
+[2026-10-26 15:03:13] [monitor] 本轮结束：成功 1/2，耗时 192s
 ```
 
 只检测部分分组时在命令末尾加 `--group <id>`，可以写多次，例如 `--group 1 --group 3`。

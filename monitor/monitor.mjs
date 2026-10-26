@@ -18,8 +18,18 @@ const { values: args } = parseArgs({
 
 const GROUP_ID = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
+// Server-local time, e.g. 2026-10-26 14:52:07, so log lines line up with cron schedules.
+function timestamp(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+function log(message) {
+  console.log(`[${timestamp()}] [monitor] ${message}`);
+}
+
 function fail(message) {
-  console.error('[monitor] ' + message);
+  console.error(`[${timestamp()}] [monitor] ${message}`);
   process.exit(1);
 }
 
@@ -82,7 +92,7 @@ async function main() {
   await mkdir(runsDir, { recursive: true });
 
   if (!(await acquireLock(lockFile))) {
-    console.log('[monitor] 上一轮检测仍在进行，跳过本轮');
+    log('上一轮检测仍在进行，跳过本轮');
     return;
   }
   const release = () => rm(lockFile, { force: true });
@@ -108,7 +118,8 @@ async function main() {
       nextUpdateAt: new Date(Date.parse(startedAt) + config.intervalMinutes * 60_000).toISOString(),
       groups: config.groups.filter((group) => group.enabled !== false).map((group) => {
         const old = previousById.get(group.id);
-        const runs = old?.runs || [];
+        // Drop error text left by older versions so it never gets republished.
+        const runs = (old?.runs || []).map((run) => { const copy = { ...run }; delete copy.error; return copy; });
         const settled = runs[0] ? runs[0].status : 'idle';
         return {
           id: group.id,
@@ -148,6 +159,7 @@ async function main() {
       const runId = startedAt.replace(/[-:.TZ]/g, '').slice(0, 14) + '-' + round;
       const begin = Date.now();
       let record;
+      let failure = '';
       try {
         const result = await runChat({
           baseUrl: config.baseUrl,
@@ -166,7 +178,9 @@ async function main() {
         if (result.usage) record.usage = { prompt: result.usage.prompt_tokens, completion: result.usage.completion_tokens };
       } catch (error) {
         const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError';
-        record = { id: runId, status: 'failed', error: timedOut ? `超过 ${config.timeoutSeconds} 秒未完成` : redact(error?.message, keys) };
+        // status.json is public; upstream error text can reveal accounts/models/infra, so it stays in the server log only.
+        failure = timedOut ? `超过 ${config.timeoutSeconds} 秒未完成` : redact(error?.message, keys);
+        record = { id: runId, status: 'failed' };
       }
       Object.assign(record, {
         round,
@@ -182,15 +196,22 @@ async function main() {
       }
       Object.assign(entry, { runs: runs.slice(0, config.historySize), round, state: record.status, updatedAt: new Date().toISOString() });
       await save();
-      console.log(`[monitor] ${group.id} 第 ${round} 轮 ${record.status === 'ok' ? '完成' : '失败：' + record.error}（${Math.round(record.durationMs / 1000)}s）`);
+      log(`${group.id} 第 ${round} 轮 ${record.status === 'ok' ? '完成' : '失败：' + failure}（${Math.round(record.durationMs / 1000)}s）`);
     };
 
     const queue = config.groups.filter(shouldRun);
+    const total = queue.length;
+    log(`开始检测 ${total} 个分组（并发 ${config.concurrency}）`);
+    let okCount = 0;
     const workers = Array.from({ length: Math.max(1, Math.min(config.concurrency, queue.length)) }, async () => {
-      for (let group = queue.shift(); group; group = queue.shift()) await runGroup(group);
+      for (let group = queue.shift(); group; group = queue.shift()) {
+        await runGroup(group);
+        if (status.groups.find((item) => item.id === group.id)?.state === 'ok') okCount++;
+      }
     });
     await Promise.all(workers);
     await writing;
+    log(`本轮结束：成功 ${okCount}/${total}，耗时 ${Math.round((Date.now() - Date.parse(startedAt)) / 1000)}s`);
   } finally {
     await release();
   }

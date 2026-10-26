@@ -17,7 +17,6 @@ export interface StatusRun {
   type?: ArtifactType;
   file?: string;
   chars?: number;
-  error?: string;
   usage?: { prompt?: number; completion?: number };
 }
 

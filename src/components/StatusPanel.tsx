@@ -16,13 +16,6 @@ const STATE_BADGE: Record<StatusGroup['state'], { label: string; className: stri
 
 const REFRESH_MS = 60_000;
 
-// Records written before gateway-error cleanup may still contain a whole HTML error page.
-function readableError(message?: string): string {
-  if (!message) return '检测失败';
-  const html = message.indexOf('<');
-  return html > 0 && /<(!doctype|html)/i.test(message) ? message.slice(0, html).replace(/[：:\s]+$/, '') + '：网关返回了错误页面' : message;
-}
-
 function useRunArtifact(run: StatusRun | undefined) {
   const file = run?.status === 'ok' ? run.file : undefined;
   const type = run?.type;
@@ -47,8 +40,8 @@ function RunPreview({ run, title, className = '', fill = false }: { run: StatusR
   return (
     <div className={`flex w-full flex-col items-center justify-center gap-2 bg-line/30 p-3 text-center text-xs text-muted ${fill ? 'h-full' : 'aspect-[16/10]'} ${className}`}>
       {loading ? <Loader2 size={18} className="animate-spin" />
-        : run?.status === 'failed' ? <><XCircle size={20} className="text-error" /><span className="line-clamp-3 break-all text-error">{readableError(run.error)}</span></>
-          : <><ImageOff size={20} /><span>{error || '暂无作品'}</span></>}
+        : run?.status === 'failed' ? <XCircle size={fill ? 40 : 28} className="text-error" aria-label="检测失败" />
+          : <><ImageOff size={20} /><span>{error ? '作品加载失败' : '暂无作品'}</span></>}
     </div>
   );
 }
