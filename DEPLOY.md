@@ -1,5 +1,14 @@
 # 模型智能测试站 - 部署说明
 
+下文以 `your-domain.com` 代表你的 sub2api 域名，以 `/data/docker-server/` 作为服务器目录示例，按实际情况替换。
+
+## 0. 前置条件
+
+- 一个已经运行的 sub2api，对外域名为 `your-domain.com`，前端会请求同域的 `/api/v1/*` 和 `/v1/*`，所以本站必须挂在同一域名的 `/model-intelligence-test/` 下
+- nginx（下文以 Docker 运行，宿主机 `/data/docker-server/nginx/html` 挂载为容器内 `/usr/share/nginx/html`）
+- 服务器装有 Docker，用于运行检测脚本；本地打包需要 Node.js 20+
+- 每个检测分组准备一个 sub2api 系统 Key
+
 ## 线上部署结构
 
 ```
@@ -13,7 +22,7 @@
 └── log.log
 ```
 
-- 前端由 nginx（Docker）对外提供，地址 `https://tokenhub.junly.top/model-intelligence-test/`
+- 前端由 nginx（Docker）对外提供，地址 `https://your-domain.com/model-intelligence-test/`
 - 检测数据对外路径是 `/model-intelligence-test/data/`，就是 web 目录下的 `data/`
 - 检测脚本每次运行检测一轮后退出，由 cron 定时调用，用 `node:22-alpine` 容器运行，不依赖宿主机 Node 版本
 
@@ -50,6 +59,21 @@ rm /tmp/web.zip
 > 先清理再解压是为了去掉旧版本 `_next/` 里带哈希的过期文件；只 `unzip -o` 覆盖也能正常访问，只是旧文件会越积越多。
 
 nginx 读的是挂载目录，静态文件更新后**不需要重启或 reload nginx**。浏览器强制刷新即可看到新版本。
+
+### 首次部署：配置 nginx
+
+把仓库里 [nginx-config.conf](./nginx-config.conf) 中的几个 `location` 块加到 sub2api 所在的 `server` 块里，然后检查并重载：
+
+```bash
+docker exec <nginx 容器名> nginx -t
+docker exec <nginx 容器名> nginx -s reload
+```
+
+要点：
+
+- `/model-intelligence-test/data/` 必须单独配置 `no-store`，否则浏览器会缓存旧的检测结果
+- `/model-intelligence-test` 不带斜杠时 302 跳转并保留查询参数，否则单点登录的 `?user_id=&token=` 会丢失
+- 在 sub2api 的跳转/菜单里把链接指向 `https://your-domain.com/model-intelligence-test/`，并带上 `user_id` 和 `token` 参数
 
 ## 3. 更新检测脚本
 
@@ -96,7 +120,7 @@ docker run --rm \
 
 ```bash
 cat /data/docker-server/nginx/html/model-intelligence-test/data/status.json | head -30
-curl -s https://tokenhub.junly.top/model-intelligence-test/data/status.json | head -5
+curl -s https://your-domain.com/model-intelligence-test/data/status.json | head -5
 ```
 
 ## 5. 定时任务
@@ -131,7 +155,7 @@ tail -f /data/docker-server/model-intelligence-test/log.log
 {
   "title": "系统检测",
   "notice": "鹈鹕测试不代表模型的全部能力……",
-  "baseUrl": "https://tokenhub.junly.top/v1",
+  "baseUrl": "https://your-sub2api.example.com/v1",
   "outputDir": "/data",
   "intervalMinutes": 15,
   "historySize": 6,
@@ -140,11 +164,11 @@ tail -f /data/docker-server/model-intelligence-test/log.log
   "prompt": "用 SVG 画一只鹈鹕骑自行车的 2D 循环动画",
   "groups": [
     {
-      "id": "1",
-      "name": "GPT福利",
+      "id": "gpt",
+      "name": "示例_GPT",
       "apiKey": "sk-replace-me",
-      "model": "gpt-6.1-sol",
-      "effort": "high",
+      "model": "gpt-4o",
+      "effort": "default",
       "enabled": true
     }
   ]
@@ -170,7 +194,7 @@ tail -f /data/docker-server/model-intelligence-test/log.log
 | 字段 | 必填 | 说明 |
 |---|---|---|
 | `id` | 是 | 分组唯一标识，只能用小写字母、数字、`-`、`_`，最长 64 位。作品存放在 `data/runs/<id>/` |
-| `name` | 是 | 分组名，例如 `GPT福利`。页面自动加“组 ·”前缀，显示为“组 · GPT福利”，这里不要再写“组 ·” |
+| `name` | 是 | 分组名，例如 `示例_GPT`。页面自动加“组 ·”前缀，显示为“组 · 示例_GPT”，这里不要再写“组 ·” |
 | `apiKey` | 启用时必填 | 该分组的系统 Key。只保存在服务器，不会写进 `status.json`，错误信息里的 Key 会被打码 |
 | `model` | 是 | 模型名，和 sub2api 里的一致 |
 | `effort` | 否 | 思考强度：`default`（不传参数）/ `low` / `medium` / `high` / `xhigh`，对应请求的 `reasoning_effort` |
@@ -188,7 +212,7 @@ tail -f /data/docker-server/model-intelligence-test/log.log
 
 脚本在容器里运行，`127.0.0.1` 指的是容器自己，不是宿主机。可选写法：
 
-- `https://tokenhub.junly.top/v1`：走公网，最简单。但公网链路的网关/Cloudflare 会在 60～100 秒断开长请求，慢模型（如 Grok）会报 `HTTP 504 Gateway time-out`
+- `https://your-domain.com/v1`：走公网，最简单。但公网链路的网关/Cloudflare 会在 60～100 秒断开长请求，慢模型（如 Grok）会报 `HTTP 504 Gateway time-out`
 - 走内网，不受网关超时限制：
   - sub2api 在 Docker 网络里：`docker run` 加 `--network <sub2api 所在网络>`，`baseUrl` 写 `http://<sub2api 容器名>:<端口>/v1`
   - sub2api 端口映射在宿主机：`docker run` 加 `--add-host=host.docker.internal:host-gateway`，`baseUrl` 写 `http://host.docker.internal:<端口>/v1`
@@ -228,6 +252,8 @@ tail -f /data/docker-server/model-intelligence-test/log.log
 
 - 用户测试用的是自己的 Key，由 sub2api 单点登录拉取，请求直接发往同域的 `/v1`
 - 模型生成的 SVG/HTML 在 `sandbox="allow-scripts"` 的 iframe 里渲染，CSP 禁止一切网络请求
+- 提交代码前确认 `git status` 里没有 `monitor/config.json`、`.env`、证书私钥和 `release/*.zip`，这些已在 `.gitignore` 中忽略，不要用 `git add -f` 强行加入
+- Key 一旦误提交到公开仓库，删除提交不够，必须到 sub2api 后台作废并重新生成
 
 ## 9. 本地预览（开发用）
 
@@ -235,9 +261,12 @@ tail -f /data/docker-server/model-intelligence-test/log.log
 
 ```bash
 npm run build
-npm run preview     # http://127.0.0.1:3210/model-intelligence-test/
+UPSTREAM=https://your-domain.com npm run preview     # http://127.0.0.1:3210/model-intelligence-test/
+# Windows PowerShell：$env:UPSTREAM="https://your-domain.com"; npm run preview
 ```
 
-把 TokenHub 的登录链接换成 `127.0.0.1:3210` 打开，例如 `http://127.0.0.1:3210/model-intelligence-test/?user_id=1&token=<token>`。改了前端要重新 `npm run build`。
+`UPSTREAM` 是 sub2api 的源地址（不带 `/v1`），不设置会直接报错退出。端口被占用时自动顺延，也可以用 `npm run preview -- --port 4000` 指定。
+
+把 sub2api 的登录链接换成 `127.0.0.1:3210` 打开，例如 `http://127.0.0.1:3210/model-intelligence-test/?user_id=1&token=<token>`。改了前端要重新 `npm run build`。
 
 本地检测数据用 `npm run monitor:local` 生成：读取 `monitor/config.json`，结果写到 `public/data/`，一轮会真实调用模型，需要几分钟。

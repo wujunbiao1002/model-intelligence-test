@@ -16,6 +16,14 @@ public/data/
 
 # 环境变量
 .env*
+!.env.example
+
+# 证书与私钥
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
 
 # 日志
 *.log

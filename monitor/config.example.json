@@ -1,7 +1,7 @@
 {
   "title": "系统检测",
   "notice": "鹈鹕测试不代表模型的全部能力，单次测试表现波动也不等于日常工作能力明显下降。请结合实际任务判断，无需因一次测试结果过度担心。",
-  "baseUrl": "https://tokenhub.junly.top/v1",
+  "baseUrl": "https://your-sub2api.example.com/v1",
   "outputDir": "/data",
   "intervalMinutes": 15,
   "historySize": 6,
@@ -10,27 +10,27 @@
   "prompt": "用 SVG 画一只鹈鹕骑自行车的 2D 循环动画",
   "groups": [
     {
-      "id": "1",
-      "name": "GPT福利",
+      "id": "gpt",
+      "name": "示例_GPT",
       "apiKey": "sk-replace-me",
-      "model": "gpt-6.1-sol",
-      "effort": "high",
-      "enabled": true
-    },
-    {
-      "id": "2",
-      "name": "福利_Grok",
-      "apiKey": "sk-replace-me",
-      "model": "grok-4.7",
+      "model": "gpt-4o",
       "effort": "default",
       "enabled": true
     },
     {
-      "id": "3",
-      "name": "实惠_GPT",
+      "id": "reasoning",
+      "name": "示例_推理模型",
       "apiKey": "sk-replace-me",
-      "model": "gpt-6.1-sol",
+      "model": "o3-mini",
       "effort": "high",
+      "enabled": true
+    },
+    {
+      "id": "disabled-demo",
+      "name": "示例_已停用",
+      "apiKey": "sk-replace-me",
+      "model": "your-model-name",
+      "effort": "default",
       "enabled": false
     }
   ]

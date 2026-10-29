@@ -6,7 +6,7 @@ import { dirname, extname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url';
 
 const PROJECT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const UPSTREAM = 'https://tokenhub.junly.top';
+const UPSTREAM = process.env.UPSTREAM || '';
 const HOP_HEADERS = ['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade'];
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8',
@@ -121,10 +121,11 @@ export function createLocalServer({ root = resolve(PROJECT, 'out'), dataRoot = r
 async function main() {
   const args = process.argv.slice(2);
   if (args.includes('--help')) {
-    console.log('Usage: npm run preview -- [--port 3210]');
-    console.log('Serves out/ at /model-intelligence-test/ and forwards /api/ and /v1/ to upstream.');
+    console.log('Usage: UPSTREAM=https://your-sub2api.example.com npm run preview -- [--port 3210]');
+    console.log('Serves out/ at /model-intelligence-test/ and forwards /api/ and /v1/ to $UPSTREAM.');
     return;
   }
+  if (!UPSTREAM) throw new Error('Set UPSTREAM to your sub2api origin, e.g. UPSTREAM=https://your-sub2api.example.com');
   if (args.length && (args.length !== 2 || args[0] !== '--port')) throw new Error('Only --port <number> is supported');
   let port = args.length ? Number(args[1]) : 3210;
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Port must be 1024-65535');

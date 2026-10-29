@@ -11,13 +11,8 @@ export interface Sub2ApiSession {
 export const AUTH_INVALIDATED = 'model-intelligence-test-auth-invalidated';
 let verifiedSession: Sub2ApiSession | null = null;
 let initialization: Promise<Sub2ApiSession> | null = null;
-let sessionController = new AbortController();
-
-export function getSub2ApiAbortSignal(): AbortSignal { return sessionController.signal; }
 
 export function invalidateSub2ApiSession(): void {
-  sessionController.abort();
-  sessionController = new AbortController();
   verifiedSession = null;
   initialization = null;
   clearAuthToken();
